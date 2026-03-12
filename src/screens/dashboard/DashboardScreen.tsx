@@ -194,27 +194,30 @@ export default function DashboardScreen({ navigation }: any) {
         </TouchableOpacity>
       )}
 
-      {/* Cards financeiros */}
-      <View style={estilos.gridResponsivo}>
-        <Card estilo={[estilos.cardFinanceiro, estilos.cardMetade, { backgroundColor: '#E8F5E9' }]}>
+      {/* Cards financeiros — linha 1: 3 cards */}
+      <View style={estilos.gridLinha}>
+        <Card estilo={[estilos.cardFinanceiro, estilos.cardTerceiro, { backgroundColor: '#E8F5E9' }]}>
           <Text style={estilos.cfTitulo}>Recebido</Text>
           <Text style={[estilos.cfValor, { color: Colors.success }]}>
             {formataMoeda(financeiro.totalRecebido)}
           </Text>
         </Card>
-        <Card estilo={[estilos.cardFinanceiro, estilos.cardMetade, { backgroundColor: '#FFF8E1' }]}>
+        <Card estilo={[estilos.cardFinanceiro, estilos.cardTerceiro, { backgroundColor: '#FFF8E1' }]}>
           <Text style={estilos.cfTitulo}>A Receber</Text>
           <Text style={[estilos.cfValor, { color: Colors.warning }]}>
             {formataMoeda(financeiro.totalPendente)}
           </Text>
         </Card>
-        <Card estilo={[estilos.cardFinanceiro, estilos.cardMetade, { backgroundColor: Colors.primaryLight }]}>
-          <Text style={estilos.cfTitulo}>Vendas no período</Text>
+        <Card estilo={[estilos.cardFinanceiro, estilos.cardTerceiro, { backgroundColor: Colors.primaryLight }]}>
+          <Text style={estilos.cfTitulo}>Vendas</Text>
           <Text style={[estilos.cfValor, { color: Colors.primary }]}>
             {formataMoeda(financeiro.totalVendas)}
           </Text>
           <Text style={estilos.cfSub}>{financeiro.quantidadeVendas} venda(s)</Text>
         </Card>
+      </View>
+      {/* Cards financeiros — linha 2: 2 cards */}
+      <View style={estilos.gridLinha}>
         <Card estilo={[estilos.cardFinanceiro, estilos.cardMetade, { backgroundColor: '#F3E5F5' }]}>
           <Text style={estilos.cfTitulo}>Lucro Estimado</Text>
           <Text style={[estilos.cfValor, { color: Colors.accent }]}>
@@ -222,7 +225,7 @@ export default function DashboardScreen({ navigation }: any) {
           </Text>
         </Card>
         <Card estilo={[estilos.cardFinanceiro, estilos.cardMetade, { backgroundColor: '#E3F2FD' }]}>
-          <Text style={estilos.cfTitulo}>Quantidade vendida</Text>
+          <Text style={estilos.cfTitulo}>Qtd vendida</Text>
           <Text style={[estilos.cfValor, { color: '#1565C0' }]}>{financeiro.quantidadeVendida.toFixed(0)} un</Text>
         </Card>
       </View>
@@ -328,14 +331,14 @@ const estilos = StyleSheet.create({
   alertaIcone: { fontSize: 24 },
   alertaTitulo: { fontWeight: '700', fontSize: FontSize.md },
   alertaDesc: { fontSize: FontSize.xs, color: Colors.textSecondary },
-  gridResponsivo: {
+  gridLinha: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: Spacing.sm,
   },
-  cardFinanceiro: { flex: 1, padding: Spacing.md },
-  cardMetade: { width: '48.6%', marginBottom: Spacing.sm },
+  cardFinanceiro: { padding: Spacing.sm },
+  cardTerceiro: { width: '32%' },
+  cardMetade: { width: '48.6%' },
   cfTitulo: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: '600', marginBottom: 4 },
   cfValor: { fontSize: FontSize.lg, fontWeight: '800' },
   cfSub: { fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 2 },

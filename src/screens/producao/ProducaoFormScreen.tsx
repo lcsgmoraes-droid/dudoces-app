@@ -82,7 +82,7 @@ export default function ProducaoFormScreen({ route, navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView style={estilos.container} contentContainerStyle={estilos.conteudo}>
         <Text style={estilos.secaoTitulo}>O que você fez hoje? 👩‍🍳</Text>
 

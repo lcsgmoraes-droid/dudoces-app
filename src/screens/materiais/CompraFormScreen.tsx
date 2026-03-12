@@ -158,7 +158,7 @@ export default function CompraFormScreen({ route, navigation }: any) {
     : 'Preço por pacote (R$)';
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView style={estilos.container} contentContainerStyle={estilos.conteudo}>
         {/* Seleção da matéria-prima */}
         <Text style={estilos.rotulo}>Matéria-prima *</Text>

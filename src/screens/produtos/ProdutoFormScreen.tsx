@@ -53,7 +53,7 @@ export default function ProdutoFormScreen({ route, navigation }: any) {
         nome: nome.trim(),
         descricao: descricao.trim(),
         preco_venda: Number.parseFloat(preco) || 0,
-        estoque_atual: tipoVenda === 'fatia' ? 0 : (Number.parseFloat(estoque) || 0),
+        estoque_atual: Number.parseFloat(estoque) || 0,
         unidade: tipoVenda === 'fatia' ? 'fatia' : (unidade.trim() || 'unidade'),
         rendimento_fatias: Number.parseFloat(rendimentoFatias) || 1,
         foto: foto || undefined,
@@ -73,8 +73,8 @@ export default function ProdutoFormScreen({ route, navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={estilos.container} contentContainerStyle={estilos.conteudo}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView style={estilos.container} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
         <Input
           rotulo="Nome do produto"
           obrigatorio
@@ -132,20 +132,19 @@ export default function ProdutoFormScreen({ route, navigation }: any) {
           placeholder="Ex: 10"
           erro={erros.rendimento}
         />
-        {tipoVenda === 'fatia' ? (
+        {tipoVenda === 'fatia' && (
           <View style={estilos.porFatiaInfo}>
             <Text style={estilos.porFatiaTitulo}>🍰 por fatia · {rendimentoFatias || '?'} fatias por receita</Text>
-            <Text style={estilos.porFatiaDesc}>O estoque é gerenciado automaticamente pela produção</Text>
+            <Text style={estilos.porFatiaDesc}>Estoque cresce automaticamente com cada produção</Text>
           </View>
-        ) : (
-          <Input
-            rotulo="Estoque inicial"
-            value={estoque}
-            onChangeText={setEstoque}
-            keyboardType="decimal-pad"
-            placeholder="0"
-          />
         )}
+        <Input
+          rotulo={tipoVenda === 'fatia' ? 'Estoque atual (ajuste manual)' : 'Estoque inicial'}
+          value={estoque}
+          onChangeText={setEstoque}
+          keyboardType="decimal-pad"
+          placeholder="0"
+        />
         <Separador />
         {/* Foto do produto */}
         <Text style={estilos.rotulo}>Foto do produto (opcional)</Text>

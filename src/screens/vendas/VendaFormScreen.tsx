@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, ScrollView, StyleSheet, Alert,
-  TouchableOpacity, KeyboardAvoidingView, Platform, FlatList
+  TouchableOpacity, KeyboardAvoidingView, Platform, FlatList, Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../theme';
@@ -60,11 +61,13 @@ export default function VendaFormScreen({ navigation }: any) {
   const [mostrarClientes, setMostrarClientes] = useState(false);
   const [mostrarProdutos, setMostrarProdutos] = useState(false);
 
+  // Recarrega produtos TODA VEZ que a tela fica em foco (ex: volta da produção)
+  useFocusEffect(useCallback(() => {
+    listarProdutos().then(prods => setProdutos(prods.filter(p => p.estoque_atual > 0)));
+  }, []));
+
   useEffect(() => {
-    Promise.all([listarProdutos(), listarClientes()]).then(([prods, clts]) => {
-      setProdutos(prods.filter(p => p.estoque_atual > 0));
-      setClientes(clts);
-    });
+    listarClientes().then(setClientes);
   }, []);
 
   const subtotal = itens.reduce((s, i) => s + (parseFloat(i.preco) || 0) * i.quantidade, 0);
@@ -142,8 +145,8 @@ export default function VendaFormScreen({ navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={estilos.container} contentContainerStyle={estilos.conteudo}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView style={estilos.container} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
 
         {/* Itens da venda */}
         <Text style={estilos.secaoTitulo}>🛍️ Produtos</Text>
@@ -189,10 +192,18 @@ export default function VendaFormScreen({ navigation }: any) {
               keyExtractor={p => String(p.id)}
               renderItem={({ item }) => (
                 <TouchableOpacity style={estilos.prodOpcao} onPress={() => adicionarProduto(item)}>
-                  <Text style={estilos.prodOpcaoNome}>{item.nome}</Text>
-                  <Text style={estilos.prodOpcaoInfo}>
-                    Estoque: {item.estoque_atual} · {item.preco_venda.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </Text>
+                  <View style={estilos.prodOpcaoRow}>
+                    {item.foto
+                      ? <Image source={{ uri: item.foto }} style={estilos.prodOpcaoFoto} />
+                      : <View style={estilos.prodOpcaoFotoPlaceholder}><Text style={{ fontSize: 18 }}>🍰</Text></View>
+                    }
+                    <View style={{ flex: 1 }}>
+                      <Text style={estilos.prodOpcaoNome}>{item.nome}</Text>
+                      <Text style={estilos.prodOpcaoInfo}>
+                        Estoque: {item.estoque_atual} · {item.preco_venda.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </Text>
+                    </View>
+                  </View>
                 </TouchableOpacity>
               )}
               ListEmptyComponent={<Text style={{ color: Colors.textMuted, textAlign: 'center', padding: 8 }}>Sem produtos em estoque</Text>}
@@ -327,6 +338,13 @@ const estilos = StyleSheet.create({
   prodOpcao: {
     padding: Spacing.sm,
     borderBottomWidth: 1, borderBottomColor: Colors.border,
+  },
+  prodOpcaoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  prodOpcaoFoto: { width: 44, height: 44, borderRadius: 8 },
+  prodOpcaoFotoPlaceholder: {
+    width: 44, height: 44, borderRadius: 8,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center', justifyContent: 'center',
   },
   prodOpcaoNome: { fontWeight: '600', color: Colors.textPrimary },
   prodOpcaoInfo: { fontSize: FontSize.xs, color: Colors.textMuted },

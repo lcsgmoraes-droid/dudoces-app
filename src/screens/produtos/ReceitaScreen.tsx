@@ -93,7 +93,7 @@ export default function ReceitaScreen({ route, navigation }: any) {
   const custoTotalReceita = custoPorFatia * rendimento;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView style={estilos.container} contentContainerStyle={estilos.conteudo}>
         <Card estilo={{ marginBottom: Spacing.md }}>
           <Input

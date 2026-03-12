@@ -45,7 +45,7 @@ export default function ClienteFormScreen({ route, navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView style={estilos.container} contentContainerStyle={estilos.conteudo}>
         <Input
           rotulo="Nome"

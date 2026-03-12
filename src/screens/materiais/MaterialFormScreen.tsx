@@ -80,8 +80,8 @@ export default function MaterialFormScreen({ route, navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={estilos.container} contentContainerStyle={estilos.conteudo}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView style={estilos.container} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
         <Input
           rotulo="Nome da matéria-prima"
           obrigatorio
