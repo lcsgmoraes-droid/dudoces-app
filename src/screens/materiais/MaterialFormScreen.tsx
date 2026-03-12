@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Alert,
+  View, Text, ScrollView, StyleSheet, Alert, Image,
   KeyboardAvoidingView, Platform, TouchableOpacity
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../theme';
 import { Input, Botao, Separador, Card } from '../../components/ui';
 import { salvarMateriaPrima, atualizarMateriaPrima } from '../../database/materiaisService';
@@ -21,6 +23,9 @@ export default function MaterialFormScreen({ route, navigation }: any) {
   const [estoque, setEstoque] = useState(String(mat?.estoque_atual ?? '0'));
   const [estoqueMin, setEstoqueMin] = useState(String(mat?.estoque_minimo ?? '0'));
   const [usarMedio, setUsarMedio] = useState(mat?.usar_custo_medio === 1);
+  const [foto, setFoto] = useState<string | null>(mat?.foto || null);
+  const [qtdPorEmbalagem, setQtdPorEmbalagem] = useState(String(mat?.qtd_por_embalagem || ''));
+  const [descricaoEmbalagem, setDescricaoEmbalagem] = useState(mat?.descricao_embalagem || '');
   const [salvando, setSalvando] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
 
@@ -38,14 +43,17 @@ export default function MaterialFormScreen({ route, navigation }: any) {
       const dados = {
         nome: nome.trim(),
         unidade,
-        custo_ultima_compra: parseFloat(custoUltima) || 0,
-        custo_medio: parseFloat(custoMedio) || 0,
-        estoque_atual: parseFloat(estoque) || 0,
-        estoque_minimo: parseFloat(estoqueMin) || 0,
+        custo_ultima_compra: Number.parseFloat(custoUltima) || 0,
+        custo_medio: Number.parseFloat(custoMedio) || 0,
+        estoque_atual: Number.parseFloat(estoque) || 0,
+        estoque_minimo: Number.parseFloat(estoqueMin) || 0,
         usar_custo_medio: usarMedio ? 1 : 0,
+        foto: foto || undefined,
+        qtd_por_embalagem: Number.parseFloat(qtdPorEmbalagem) || 0,
+        descricao_embalagem: descricaoEmbalagem.trim() || undefined,
       };
       if (editando) {
-        await atualizarMateriaPrima(mat!.id, dados);
+        await atualizarMateriaPrima(mat.id, dados);
       } else {
         await salvarMateriaPrima(dados);
       }
@@ -55,6 +63,20 @@ export default function MaterialFormScreen({ route, navigation }: any) {
     } finally {
       setSalvando(false);
     }
+  };
+
+  const tirarFoto = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) { Alert.alert('Permissão necessária', 'Precisamos acessar a câmera.'); return; }
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });
+    if (!result.canceled && result.assets[0]) setFoto(result.assets[0].uri);
+  };
+
+  const escolherFoto = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) { Alert.alert('Permissão necessária', 'Precisamos acessar a galeria.'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+    if (!result.canceled && result.assets[0]) setFoto(result.assets[0].uri);
   };
 
   return (
@@ -145,6 +167,54 @@ export default function MaterialFormScreen({ route, navigation }: any) {
           onPress={salvar}
           carregando={salvando}
         />
+
+        {/* Foto */}
+        <Separador />
+        <Text style={estilos.rotulo}>Foto da matéria-prima (opcional)</Text>
+        <View style={estilos.fotoRow}>
+          <TouchableOpacity style={estilos.fotoBotao} onPress={tirarFoto}>
+            <Ionicons name="camera" size={22} color={Colors.primary} />
+            <Text style={estilos.fotoBotaoTexto}>Tirar foto</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={estilos.fotoBotao} onPress={escolherFoto}>
+            <Ionicons name="image" size={22} color={Colors.primary} />
+            <Text style={estilos.fotoBotaoTexto}>Galeria</Text>
+          </TouchableOpacity>
+        </View>
+        {foto && (
+          <View style={{ marginBottom: Spacing.md }}>
+            <Image source={{ uri: foto }} style={estilos.fotoPreview} />
+            <TouchableOpacity onPress={() => setFoto(null)} style={estilos.removerFoto}>
+              <Text style={{ color: Colors.danger, fontWeight: '600' }}>✕ Remover foto</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Apresentação padrão de compra */}
+        <Separador />
+        <Card estilo={{ marginBottom: Spacing.md }}>
+          <Text style={estilos.cardTitulo}>📦 Apresentação padrão de compra</Text>
+          <Text style={estilos.dica}>Configure como costuma comprar (ex: pote de 650g). Será pré-preenchido na hora de registrar uma compra.</Text>
+          <Input
+            rotulo={`Qtd por embalagem (${unidade})`}
+            value={qtdPorEmbalagem}
+            onChangeText={setQtdPorEmbalagem}
+            keyboardType="decimal-pad"
+            placeholder={`Ex: 650 (${unidade})`}
+          />
+          <Input
+            rotulo="Tipo de embalagem"
+            value={descricaoEmbalagem}
+            onChangeText={setDescricaoEmbalagem}
+            placeholder="Ex: pote, pacote, caixa, lata"
+          />
+          {!!qtdPorEmbalagem && !!descricaoEmbalagem && (
+            <Text style={[estilos.dica, { color: Colors.primary, marginTop: 4 }]}>
+              Exemplo: 1 {descricaoEmbalagem} de {qtdPorEmbalagem}{unidade}
+            </Text>
+          )}
+        </Card>
+
         <Separador espaco={Spacing.xl} />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -174,4 +244,14 @@ const estilos = StyleSheet.create({
   opcaoTexto: { fontWeight: '600', color: Colors.textSecondary },
   opcaoTextoSelecionado: { color: Colors.primary },
   dica: { fontSize: FontSize.xs, color: Colors.textMuted, lineHeight: 18 },
+  fotoRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+  fotoBotao: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, padding: Spacing.md,
+    borderWidth: 1.5, borderColor: Colors.primary, borderRadius: BorderRadius.md,
+    borderStyle: 'dashed',
+  },
+  fotoBotaoTexto: { color: Colors.primary, fontWeight: '600' },
+  fotoPreview: { width: '100%', height: 180, borderRadius: BorderRadius.md, backgroundColor: Colors.border },
+  removerFoto: { alignItems: 'center', marginTop: 8 },
 });

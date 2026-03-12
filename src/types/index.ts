@@ -17,6 +17,9 @@ export interface MateriaPrima {
   estoque_atual: number;
   estoque_minimo: number;
   usar_custo_medio: number; // 0 = última compra, 1 = custo médio
+  foto?: string;
+  qtd_por_embalagem?: number;
+  descricao_embalagem?: string;
   created_at: string;
 }
 
@@ -41,6 +44,7 @@ export interface Produto {
   estoque_atual: number;
   unidade: string;
   rendimento_fatias?: number;
+  foto?: string;
   created_at: string;
   // campos extras calculados
   custo_producao?: number;
@@ -117,4 +121,8 @@ export interface PlanejamentoNecessidade {
   necessidade_2meses: number;
   estoque_atual: number;
   falta_semana: number;
+  falta_mes: number;
+  falta_2meses: number;
+  qtd_por_embalagem?: number;
+  descricao_embalagem?: string;
 }

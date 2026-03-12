@@ -61,6 +61,13 @@ export default function CompraFormScreen({ route, navigation }: any) {
     });
   }, []);
 
+  // pré-preenche qtd por pacote quando material tem apresentação configurada
+  useEffect(() => {
+    if (materialSelecionado?.qtd_por_embalagem && materialSelecionado.qtd_por_embalagem > 0) {
+      setQtdPorPacote(String(materialSelecionado.qtd_por_embalagem));
+    }
+  }, [materialSelecionado]);
+
   const qtdPorPacoteNum = Number.parseFloat(qtdPorPacote) || 0;
   const nPacotesNum = Number.parseFloat(nPacotes) || 0;
   const precoPorPacoteNum = Number.parseFloat(precoPorPacote) || 0;
@@ -138,6 +145,18 @@ export default function CompraFormScreen({ route, navigation }: any) {
     }
   };
 
+  const unidEmb = materialSelecionado?.unidade ?? '';
+  const descEmb = materialSelecionado?.descricao_embalagem;
+  const rotuloQtdPacote = descEmb
+    ? `Qtd por ${descEmb} (${unidEmb})`
+    : `Qtd por pacote (${unidEmb})`;
+  const rotuloNPacotes = descEmb
+    ? `Número de ${descEmb}s comprados`
+    : 'Número de pacotes comprados';
+  const rotuloPreco = descEmb
+    ? `Preço por ${descEmb} (R$)`
+    : 'Preço por pacote (R$)';
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView style={estilos.container} contentContainerStyle={estilos.conteudo}>
@@ -167,7 +186,7 @@ export default function CompraFormScreen({ route, navigation }: any) {
         )}
 
         <Input
-          rotulo={materialSelecionado ? `Qtd por pacote (${materialSelecionado.unidade})` : 'Qtd por pacote'}
+          rotulo={rotuloQtdPacote}
           obrigatorio
           value={qtdPorPacote}
           onChangeText={setQtdPorPacote}
@@ -177,7 +196,7 @@ export default function CompraFormScreen({ route, navigation }: any) {
         />
 
         <Input
-          rotulo="Número de pacotes comprados"
+          rotulo={rotuloNPacotes}
           obrigatorio
           value={nPacotes}
           onChangeText={setNPacotes}
@@ -187,7 +206,7 @@ export default function CompraFormScreen({ route, navigation }: any) {
         />
 
         <Input
-          rotulo="Preço por pacote (R$)"
+          rotulo={rotuloPreco}
           obrigatorio
           value={precoPorPacote}
           onChangeText={setPrecoPorPacote}

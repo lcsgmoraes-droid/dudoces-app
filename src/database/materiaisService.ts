@@ -18,10 +18,11 @@ export async function buscarMateriaPrima(id: number): Promise<MateriaPrima | nul
 export async function salvarMateriaPrima(mp: Omit<MateriaPrima, 'id' | 'created_at'>): Promise<number> {
   const db = await getDatabase();
   const result = await db.runAsync(
-    `INSERT INTO materias_primas (nome, unidade, custo_ultima_compra, custo_medio, estoque_atual, estoque_minimo, usar_custo_medio)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO materias_primas (nome, unidade, custo_ultima_compra, custo_medio, estoque_atual, estoque_minimo, usar_custo_medio, foto, qtd_por_embalagem, descricao_embalagem)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [mp.nome, mp.unidade, mp.custo_ultima_compra, mp.custo_medio,
-     mp.estoque_atual, mp.estoque_minimo, mp.usar_custo_medio]
+     mp.estoque_atual, mp.estoque_minimo, mp.usar_custo_medio,
+     mp.foto || null, mp.qtd_por_embalagem || 0, mp.descricao_embalagem || null]
   );
   return result.lastInsertRowId;
 }
@@ -29,10 +30,11 @@ export async function salvarMateriaPrima(mp: Omit<MateriaPrima, 'id' | 'created_
 export async function atualizarMateriaPrima(id: number, mp: Omit<MateriaPrima, 'id' | 'created_at'>): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
-    `UPDATE materias_primas SET nome=?, unidade=?, custo_ultima_compra=?, custo_medio=?, estoque_atual=?, estoque_minimo=?, usar_custo_medio=?
+    `UPDATE materias_primas SET nome=?, unidade=?, custo_ultima_compra=?, custo_medio=?, estoque_atual=?, estoque_minimo=?, usar_custo_medio=?, foto=?, qtd_por_embalagem=?, descricao_embalagem=?
      WHERE id=?`,
     [mp.nome, mp.unidade, mp.custo_ultima_compra, mp.custo_medio,
-     mp.estoque_atual, mp.estoque_minimo, mp.usar_custo_medio, id]
+     mp.estoque_atual, mp.estoque_minimo, mp.usar_custo_medio,
+     mp.foto || null, mp.qtd_por_embalagem || 0, mp.descricao_embalagem || null, id]
   );
 }
 

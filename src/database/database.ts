@@ -138,4 +138,13 @@ export async function initDatabase(): Promise<void> {
   if (!temRendimento) {
     await database.runAsync('ALTER TABLE produtos ADD COLUMN rendimento_fatias REAL DEFAULT 1');
   }
+  if (!colunasProdutos.some(col => col.name === 'foto')) {
+    await database.runAsync('ALTER TABLE produtos ADD COLUMN foto TEXT');
+  }
+
+  const colsMateriais = await database.getAllAsync<{ name: string }>("PRAGMA table_info(materias_primas)");
+  const nomesCols = new Set(colsMateriais.map(c => c.name));
+  if (!nomesCols.has('foto')) await database.runAsync('ALTER TABLE materias_primas ADD COLUMN foto TEXT');
+  if (!nomesCols.has('qtd_por_embalagem')) await database.runAsync('ALTER TABLE materias_primas ADD COLUMN qtd_por_embalagem REAL DEFAULT 0');
+  if (!nomesCols.has('descricao_embalagem')) await database.runAsync('ALTER TABLE materias_primas ADD COLUMN descricao_embalagem TEXT');
 }

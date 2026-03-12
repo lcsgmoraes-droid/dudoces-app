@@ -115,31 +115,48 @@ export default function EstoquePlanejamentoScreen() {
           <Text style={estilos.secaoTitulo}>📦 Matérias-primas necessárias</Text>
           <Text style={estilos.secaoDesc}>Baseado nas suas metas semanais</Text>
 
-          {necessidades.map(n => (
+          {necessidades.map(n => {
+            const emb = n.qtd_por_embalagem && n.qtd_por_embalagem > 0;
+            const embLabel = n.descricao_embalagem || 'pacote';
+            const embSem = emb ? Math.ceil(n.necessidade_semana / n.qtd_por_embalagem!) : null;
+            const embMes = emb ? Math.ceil(n.necessidade_mes / n.qtd_por_embalagem!) : null;
+            const emb2m = emb ? Math.ceil(n.necessidade_2meses / n.qtd_por_embalagem!) : null;
+            return (
             <Card key={n.materia_prima_id}>
               <Text style={estilos.necNome}>{n.nome}</Text>
               <View style={estilos.necGrid}>
                 <View style={estilos.necItem}>
                   <Text style={estilos.necLabel}>Semana</Text>
                   <Text style={estilos.necValor}>{n.necessidade_semana.toFixed(1)} {n.unidade}</Text>
+                  {embSem !== null && <Text style={estilos.necEmb}>{embSem} {embLabel}(s)</Text>}
                 </View>
                 <View style={estilos.necItem}>
                   <Text style={estilos.necLabel}>Mês</Text>
                   <Text style={estilos.necValor}>{n.necessidade_mes.toFixed(1)} {n.unidade}</Text>
+                  {embMes !== null && <Text style={estilos.necEmb}>{embMes} {embLabel}(s)</Text>}
                 </View>
                 <View style={estilos.necItem}>
                   <Text style={estilos.necLabel}>2 meses</Text>
                   <Text style={estilos.necValor}>{n.necessidade_2meses.toFixed(1)} {n.unidade}</Text>
+                  {emb2m !== null && <Text style={estilos.necEmb}>{emb2m} {embLabel}(s)</Text>}
                 </View>
               </View>
               {n.falta_semana > 0 && (
                 <Text style={estilos.necAlerta}>
                   ⚠️ Falta {n.falta_semana.toFixed(1)} {n.unidade} para a semana
+                  {emb && embSem! > 0 ? ` (${Math.ceil(n.falta_semana / n.qtd_por_embalagem!)} ${embLabel}(s))` : ''}
+                </Text>
+              )}
+              {n.falta_mes > 0 && (
+                <Text style={estilos.necAlertaMes}>
+                  📅 Falta {n.falta_mes.toFixed(1)} {n.unidade} para o mês
+                  {emb ? ` (${Math.ceil(n.falta_mes / n.qtd_por_embalagem!)} ${embLabel}(s))` : ''}
                 </Text>
               )}
               <Text style={estilos.necEstoque}>Em estoque: {n.estoque_atual.toFixed(1)} {n.unidade}</Text>
             </Card>
-          ))}
+            );
+          })}
         </>
       )}
 
@@ -169,5 +186,7 @@ const estilos = StyleSheet.create({
   necLabel: { fontSize: FontSize.xs, color: Colors.textMuted, fontWeight: '600' },
   necValor: { fontSize: FontSize.md, fontWeight: '700', color: Colors.primary, marginTop: 2 },
   necAlerta: { fontSize: FontSize.sm, color: Colors.warning, fontWeight: '600', marginTop: Spacing.sm },
+  necAlertaMes: { fontSize: FontSize.sm, color: Colors.primary, fontWeight: '600', marginTop: 4 },
+  necEmb: { fontSize: FontSize.xs, color: Colors.primary, fontWeight: '700', marginTop: 2 },
   necEstoque: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 4 },
 });

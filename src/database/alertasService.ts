@@ -56,17 +56,21 @@ export async function calcularNecessidades(): Promise<PlanejamentoNecessidade[]>
     unidade: string;
     necessidade_semana: number;
     estoque_atual: number;
+    qtd_por_embalagem: number;
+    descricao_embalagem: string | null;
   }>(
     `SELECT
        mp.id as materia_prima_id,
        mp.nome,
        mp.unidade,
        mp.estoque_atual,
+       mp.qtd_por_embalagem,
+       mp.descricao_embalagem,
        COALESCE(SUM(r.quantidade * m.quantidade_semana), 0) as necessidade_semana
      FROM materias_primas mp
      LEFT JOIN receitas r ON r.materia_prima_id = mp.id
      LEFT JOIN metas_producao m ON m.produto_id = r.produto_id
-     GROUP BY mp.id, mp.nome, mp.unidade, mp.estoque_atual
+     GROUP BY mp.id, mp.nome, mp.unidade, mp.estoque_atual, mp.qtd_por_embalagem, mp.descricao_embalagem
      HAVING necessidade_semana > 0
      ORDER BY mp.nome ASC`
   );
@@ -78,6 +82,13 @@ export async function calcularNecessidades(): Promise<PlanejamentoNecessidade[]>
     estoque_atual: n.estoque_atual,
     necessidade_semana: n.necessidade_semana,
     necessidade_mes: n.necessidade_semana * 4,
+    necessidade_2meses: n.necessidade_semana * 8,
+    falta_semana: Math.max(0, n.necessidade_semana - n.estoque_atual),
+    falta_mes: Math.max(0, n.necessidade_semana * 4 - n.estoque_atual),
+    falta_2meses: Math.max(0, n.necessidade_semana * 8 - n.estoque_atual),
+    qtd_por_embalagem: n.qtd_por_embalagem || 0,
+    descricao_embalagem: n.descricao_embalagem || undefined,
+  }));
     necessidade_2meses: n.necessidade_semana * 8,
     falta_semana: Math.max(0, n.necessidade_semana - n.estoque_atual),
   }));

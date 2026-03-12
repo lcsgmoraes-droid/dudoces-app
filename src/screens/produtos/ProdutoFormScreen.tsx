@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, View, Text, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, View, Text, TouchableOpacity, Image } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../theme';
 import { Input, Botao, Separador } from '../../components/ui';
 import { salvarProduto, atualizarProduto } from '../../database/produtosService';
@@ -18,6 +20,21 @@ export default function ProdutoFormScreen({ route, navigation }: any) {
   const [salvando, setSalvando] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [tipoVenda, setTipoVenda] = useState<'unidade' | 'fatia'>(prod?.unidade === 'fatia' ? 'fatia' : 'unidade');
+  const [foto, setFoto] = useState<string | null>(prod?.foto || null);
+
+  const tirarFoto = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) { Alert.alert('Permissão necessária', 'Precisamos acessar a câmera.'); return; }
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });
+    if (!result.canceled && result.assets[0]) setFoto(result.assets[0].uri);
+  };
+
+  const escolherFoto = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) { Alert.alert('Permissão necessária', 'Precisamos acessar a galeria.'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+    if (!result.canceled && result.assets[0]) setFoto(result.assets[0].uri);
+  };
 
   const validar = () => {
     const e: Record<string, string> = {};
@@ -39,6 +56,7 @@ export default function ProdutoFormScreen({ route, navigation }: any) {
         estoque_atual: tipoVenda === 'fatia' ? 0 : (Number.parseFloat(estoque) || 0),
         unidade: tipoVenda === 'fatia' ? 'fatia' : (unidade.trim() || 'unidade'),
         rendimento_fatias: Number.parseFloat(rendimentoFatias) || 1,
+        foto: foto || undefined,
       };
       if (editando) {
         if (!prod) throw new Error('Produto inválido');
@@ -129,6 +147,27 @@ export default function ProdutoFormScreen({ route, navigation }: any) {
           />
         )}
         <Separador />
+        {/* Foto do produto */}
+        <Text style={estilos.rotulo}>Foto do produto (opcional)</Text>
+        <View style={estilos.fotoRow}>
+          <TouchableOpacity style={estilos.fotoBotao} onPress={tirarFoto}>
+            <Ionicons name="camera" size={22} color={Colors.primary} />
+            <Text style={estilos.fotoBotaoTexto}>Tirar foto</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={estilos.fotoBotao} onPress={escolherFoto}>
+            <Ionicons name="image" size={22} color={Colors.primary} />
+            <Text style={estilos.fotoBotaoTexto}>Galeria</Text>
+          </TouchableOpacity>
+        </View>
+        {foto && (
+          <View style={{ marginBottom: Spacing.md }}>
+            <Image source={{ uri: foto }} style={estilos.fotoPreview} />
+            <TouchableOpacity onPress={() => setFoto(null)} style={estilos.removerFoto}>
+              <Text style={{ color: Colors.danger, fontWeight: '600' }}>✕ Remover foto</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        <Separador />
         <Botao
           titulo={editando ? 'Salvar Alterações' : 'Cadastrar Produto'}
           onPress={salvar}
@@ -159,4 +198,14 @@ const estilos = StyleSheet.create({
   },
   porFatiaTitulo: { fontWeight: '700', color: Colors.primary, fontSize: FontSize.md },
   porFatiaDesc: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 4, textAlign: 'center' },
+  fotoRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+  fotoBotao: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, padding: Spacing.md,
+    borderWidth: 1.5, borderColor: Colors.primary, borderRadius: BorderRadius.md,
+    borderStyle: 'dashed',
+  },
+  fotoBotaoTexto: { color: Colors.primary, fontWeight: '600' },
+  fotoPreview: { width: '100%', height: 180, borderRadius: BorderRadius.md, backgroundColor: Colors.border },
+  removerFoto: { alignItems: 'center', marginTop: 8 },
 });

@@ -20,10 +20,10 @@ export async function buscarProduto(id: number): Promise<Produto | null> {
 export async function salvarProduto(produto: ProdutoPayload): Promise<number> {
   const db = await getDatabase();
   const result = await db.runAsync(
-    `INSERT INTO produtos (nome, descricao, preco_venda, estoque_atual, unidade, rendimento_fatias)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO produtos (nome, descricao, preco_venda, estoque_atual, unidade, rendimento_fatias, foto)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [produto.nome, produto.descricao || null, produto.preco_venda,
-     produto.estoque_atual, produto.unidade, produto.rendimento_fatias || 1]
+     produto.estoque_atual, produto.unidade, produto.rendimento_fatias || 1, produto.foto || null]
   );
   return result.lastInsertRowId;
 }
@@ -31,9 +31,9 @@ export async function salvarProduto(produto: ProdutoPayload): Promise<number> {
 export async function atualizarProduto(id: number, produto: ProdutoPayload): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
-    `UPDATE produtos SET nome=?, descricao=?, preco_venda=?, estoque_atual=?, unidade=?, rendimento_fatias=? WHERE id=?`,
+    `UPDATE produtos SET nome=?, descricao=?, preco_venda=?, estoque_atual=?, unidade=?, rendimento_fatias=?, foto=? WHERE id=?`,
     [produto.nome, produto.descricao || null, produto.preco_venda,
-     produto.estoque_atual, produto.unidade, produto.rendimento_fatias || 1, id]
+     produto.estoque_atual, produto.unidade, produto.rendimento_fatias || 1, produto.foto || null, id]
   );
 }
 
