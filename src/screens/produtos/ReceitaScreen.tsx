@@ -140,22 +140,30 @@ export default function ReceitaScreen({ route, navigation }: any) {
                 <View style={estilos.itemRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={estilos.itemNome}>{item.materia_prima_nome}</Text>
-                    <Text style={estilos.itemSubInfo}>
-                      {apresentacao === 'receita'
-                        ? `Receita: ${(Number.parseFloat(item.quantidade) || 0).toFixed(2)} ${item.unidade}`
-                        : `Por fatia: ${((Number.parseFloat(item.quantidade) || 0) / rendimento).toFixed(2)} ${item.unidade}`}
+                    {apresentacao === 'receita' && (
+                      <Text style={estilos.itemSubInfo}>
+                        Receita: {(Number.parseFloat(item.quantidade) || 0).toFixed(2)} {item.unidade}
+                      </Text>
+                    )}
+                  </View>
+                  {apresentacao === 'receita' ? (
+                    <>
+                      <View style={estilos.itemQtd}>
+                        <Input
+                          value={item.quantidade}
+                          onChangeText={v => atualizarQtd(idx, v)}
+                          keyboardType="decimal-pad"
+                          placeholder="0"
+                          estilo={{ marginBottom: 0, width: 80 }}
+                        />
+                      </View>
+                      <Text style={estilos.unidade}>{item.unidade}</Text>
+                    </>
+                  ) : (
+                    <Text style={estilos.itemPorFatia}>
+                      Por fatia: {((Number.parseFloat(item.quantidade) || 0) / rendimento).toFixed(2)} {item.unidade}
                     </Text>
-                  </View>
-                  <View style={estilos.itemQtd}>
-                    <Input
-                      value={item.quantidade}
-                      onChangeText={v => atualizarQtd(idx, v)}
-                      keyboardType="decimal-pad"
-                      placeholder="0"
-                      estilo={{ marginBottom: 0, width: 80 }}
-                    />
-                  </View>
-                  <Text style={estilos.unidade}>{item.unidade}</Text>
+                  )}
                   <TouchableOpacity onPress={() => removerItem(idx)} style={{ padding: 4 }}>
                     <Ionicons name="close-circle" size={22} color={Colors.danger} />
                   </TouchableOpacity>
@@ -210,6 +218,7 @@ const estilos = StyleSheet.create({
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   itemNome: { fontWeight: '600', fontSize: FontSize.md, color: Colors.textPrimary },
   itemSubInfo: { fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 2 },
+  itemPorFatia: { fontSize: FontSize.sm, color: Colors.primary, fontWeight: '700', marginRight: 4 },
   itemQtd: { width: 80 },
   unidade: { fontSize: FontSize.sm, color: Colors.textSecondary, width: 40 },
   btnAdicionar: {

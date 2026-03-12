@@ -10,15 +10,42 @@ import { Input, Botao, Separador, Card } from '../../components/ui';
 import { registrarCompra, listarMateriasPrimas } from '../../database/materiaisService';
 import { MateriaPrima } from '../../types';
 
+function formatarDataBR(data: Date): string {
+  const dia = String(data.getDate()).padStart(2, '0');
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const ano = data.getFullYear();
+  return `${dia}/${mes}/${ano}`;
+}
+
+function dataBRParaISO(valor: string): string | null {
+  const partes = valor.split('/');
+  if (partes.length !== 3) return null;
+  const dia = Number(partes[0]);
+  const mes = Number(partes[1]);
+  const ano = Number(partes[2]);
+  if (!dia || !mes || !ano || ano < 2000 || mes < 1 || mes > 12 || dia < 1 || dia > 31) return null;
+  const d = new Date(ano, mes - 1, dia);
+  if (d.getFullYear() !== ano || d.getMonth() !== mes - 1 || d.getDate() !== dia) return null;
+  return `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+}
+
+function mascararData(valor: string): string {
+  const digitos = valor.replaceAll(/\D/g, '').slice(0, 8);
+  if (digitos.length <= 2) return digitos;
+  if (digitos.length <= 4) return `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
+  return `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
+}
+
 export default function CompraFormScreen({ route, navigation }: any) {
   // Pode vir com materialId pré-selecionado ou nenhum (seleção livre)
   const preId: number | undefined = route.params?.materialId;
 
   const [materiais, setMateriais] = useState<MateriaPrima[]>([]);
   const [materialSelecionado, setMaterialSelecionado] = useState<MateriaPrima | null>(null);
-  const [quantidade, setQuantidade] = useState('');
-  const [valorPago, setValorPago] = useState('');
-  const [data, setData] = useState(new Date().toISOString().split('T')[0]);
+  const [qtdPorPacote, setQtdPorPacote] = useState('');
+  const [nPacotes, setNPacotes] = useState('');
+  const [precoPorPacote, setPrecoPorPacote] = useState('');
+  const [data, setData] = useState(formatarDataBR(new Date()));
   const [foto, setFoto] = useState<string | null>(null);
   const [observacao, setObservacao] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -34,9 +61,12 @@ export default function CompraFormScreen({ route, navigation }: any) {
     });
   }, []);
 
-  const quantidadeNum = Number.parseFloat(quantidade) || 0;
-  const valorPagoNum = Number.parseFloat(valorPago) || 0;
-  const custoUnitarioCalculado = quantidadeNum > 0 ? valorPagoNum / quantidadeNum : 0;
+  const qtdPorPacoteNum = Number.parseFloat(qtdPorPacote) || 0;
+  const nPacotesNum = Number.parseFloat(nPacotes) || 0;
+  const precoPorPacoteNum = Number.parseFloat(precoPorPacote) || 0;
+  const quantidadeTotal = qtdPorPacoteNum * nPacotesNum;
+  const custoTotal = precoPorPacoteNum * nPacotesNum;
+  const custoUnitario = quantidadeTotal > 0 ? custoTotal / quantidadeTotal : 0;
 
   const tirarFoto = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -72,8 +102,9 @@ export default function CompraFormScreen({ route, navigation }: any) {
   const validar = () => {
     const e: Record<string, string> = {};
     if (!materialSelecionado) e.material = 'Selecione a matéria-prima';
-    if (!quantidade || Number.parseFloat(quantidade) <= 0) e.quantidade = 'Informe a quantidade';
-    if (!valorPago || Number.parseFloat(valorPago) <= 0) e.custo = 'Informe o valor pago';
+    if (!qtdPorPacote || qtdPorPacoteNum <= 0) e.qtdPorPacote = 'Informe a quantidade por pacote';
+    if (!nPacotes || nPacotesNum <= 0) e.nPacotes = 'Informe o número de pacotes';
+    if (!precoPorPacote || precoPorPacoteNum <= 0) e.custo = 'Informe o preço por pacote';
     setErros(e);
     return Object.keys(e).length === 0;
   };
@@ -82,15 +113,18 @@ export default function CompraFormScreen({ route, navigation }: any) {
     if (!validar()) return;
     setSalvando(true);
     try {
-      const qtd = Number.parseFloat(quantidade);
-      const custoTotal = Number.parseFloat(valorPago);
-      const custoUnitario = custoTotal / qtd;
+      const dataISO = dataBRParaISO(data);
+      if (!dataISO) {
+        Alert.alert('Erro', 'Data inválida. Use o formato dd/mm/aaaa.');
+        setSalvando(false);
+        return;
+      }
       await registrarCompra({
         materia_prima_id: materialSelecionado!.id,
-        quantidade: qtd,
+        quantidade: quantidadeTotal,
         custo_unitario: custoUnitario,
         custo_total: custoTotal,
-        data,
+        data: dataISO,
         foto_cupom: foto || undefined,
         observacao: observacao.trim() || undefined,
       });
@@ -133,32 +167,42 @@ export default function CompraFormScreen({ route, navigation }: any) {
         )}
 
         <Input
-          rotulo={materialSelecionado ? `Quantidade comprada (${materialSelecionado.unidade})` : 'Quantidade comprada'}
+          rotulo={materialSelecionado ? `Qtd por pacote (${materialSelecionado.unidade})` : 'Qtd por pacote'}
           obrigatorio
-          value={quantidade}
-          onChangeText={setQuantidade}
+          value={qtdPorPacote}
+          onChangeText={setQtdPorPacote}
           keyboardType="decimal-pad"
-          placeholder="0"
-          erro={erros.quantidade}
+          placeholder="Ex: 850"
+          erro={erros.qtdPorPacote}
         />
 
         <Input
-          rotulo="Valor total pago (R$)"
+          rotulo="Número de pacotes comprados"
           obrigatorio
-          value={valorPago}
-          onChangeText={setValorPago}
+          value={nPacotes}
+          onChangeText={setNPacotes}
+          keyboardType="decimal-pad"
+          placeholder="Ex: 3"
+          erro={erros.nPacotes}
+        />
+
+        <Input
+          rotulo="Preço por pacote (R$)"
+          obrigatorio
+          value={precoPorPacote}
+          onChangeText={setPrecoPorPacote}
           keyboardType="decimal-pad"
           placeholder="0,00"
           erro={erros.custo}
         />
 
-        {valorPagoNum > 0 && quantidadeNum > 0 && (
+        {nPacotesNum > 0 && qtdPorPacoteNum > 0 && precoPorPacoteNum > 0 && (
           <Card estilo={{ backgroundColor: '#E8F5E9', marginBottom: Spacing.md }}>
             <Text style={{ fontWeight: '700', color: Colors.success, fontSize: FontSize.lg, textAlign: 'center' }}>
-              Custo por {materialSelecionado?.unidade || 'unidade'}: {custoUnitarioCalculado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              Total: {quantidadeTotal.toLocaleString('pt-BR')} {materialSelecionado?.unidade || ''} por {custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </Text>
             <Text style={{ color: Colors.textSecondary, textAlign: 'center', marginTop: 4 }}>
-              Baseado em {quantidadeNum} {materialSelecionado?.unidade || ''} por {valorPagoNum.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              Custo por {materialSelecionado?.unidade || 'unidade'}: {custoUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </Text>
           </Card>
         )}
@@ -166,8 +210,10 @@ export default function CompraFormScreen({ route, navigation }: any) {
         <Input
           rotulo="Data da compra"
           value={data}
-          onChangeText={setData}
-          placeholder="AAAA-MM-DD"
+          onChangeText={v => setData(mascararData(v))}
+          keyboardType="numeric"
+          maxLength={10}
+          placeholder="dd/mm/aaaa"
         />
 
         {/* Foto do cupom */}

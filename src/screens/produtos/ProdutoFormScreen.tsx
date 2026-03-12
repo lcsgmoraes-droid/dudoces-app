@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { Colors, Spacing } from '../../theme';
+import { ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, View, Text, TouchableOpacity } from 'react-native';
+import { Colors, Spacing, FontSize, BorderRadius } from '../../theme';
 import { Input, Botao, Separador } from '../../components/ui';
 import { salvarProduto, atualizarProduto } from '../../database/produtosService';
 import { Produto } from '../../types';
@@ -13,10 +13,11 @@ export default function ProdutoFormScreen({ route, navigation }: any) {
   const [descricao, setDescricao] = useState(prod?.descricao || '');
   const [preco, setPreco] = useState(String(prod?.preco_venda ?? ''));
   const [estoque, setEstoque] = useState(String(prod?.estoque_atual ?? '0'));
-  const [unidade, setUnidade] = useState(prod?.unidade || 'unidade');
+  const [unidade, setUnidade] = useState(prod?.unidade && prod.unidade !== 'fatia' ? prod.unidade : 'unidade');
   const [rendimentoFatias, setRendimentoFatias] = useState(String(prod?.rendimento_fatias ?? '1'));
   const [salvando, setSalvando] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
+  const [tipoVenda, setTipoVenda] = useState<'unidade' | 'fatia'>(prod?.unidade === 'fatia' ? 'fatia' : 'unidade');
 
   const validar = () => {
     const e: Record<string, string> = {};
@@ -35,8 +36,8 @@ export default function ProdutoFormScreen({ route, navigation }: any) {
         nome: nome.trim(),
         descricao: descricao.trim(),
         preco_venda: Number.parseFloat(preco) || 0,
-        estoque_atual: Number.parseFloat(estoque) || 0,
-        unidade: unidade.trim() || 'unidade',
+        estoque_atual: tipoVenda === 'fatia' ? 0 : (Number.parseFloat(estoque) || 0),
+        unidade: tipoVenda === 'fatia' ? 'fatia' : (unidade.trim() || 'unidade'),
         rendimento_fatias: Number.parseFloat(rendimentoFatias) || 1,
       };
       if (editando) {
@@ -82,27 +83,51 @@ export default function ProdutoFormScreen({ route, navigation }: any) {
           placeholder="0,00"
           erro={erros.preco}
         />
+        <Text style={estilos.rotulo}>Tipo de venda</Text>
+        <View style={estilos.tipoRow}>
+          <TouchableOpacity
+            style={[estilos.tipoBtn, tipoVenda === 'unidade' && estilos.tipoBtnAtivo]}
+            onPress={() => setTipoVenda('unidade')}
+          >
+            <Text style={[estilos.tipoTxt, tipoVenda === 'unidade' && estilos.tipoTxtAtivo]}>🎂 Por inteiro</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[estilos.tipoBtn, tipoVenda === 'fatia' && estilos.tipoBtnAtivo]}
+            onPress={() => setTipoVenda('fatia')}
+          >
+            <Text style={[estilos.tipoTxt, tipoVenda === 'fatia' && estilos.tipoTxtAtivo]}>🍰 Por fatia</Text>
+          </TouchableOpacity>
+        </View>
+        {tipoVenda === 'unidade' && (
+          <Input
+            rotulo="Unidade"
+            value={unidade}
+            onChangeText={setUnidade}
+            placeholder="unidade, kg, litro, ..."
+          />
+        )}
         <Input
-          rotulo="Unidade"
-          value={unidade}
-          onChangeText={setUnidade}
-          placeholder="unidade, fatia, kg, ..."
-        />
-        <Input
-          rotulo="Rendimento da receita (fatias)"
+          rotulo={tipoVenda === 'fatia' ? 'Fatias por receita' : 'Rendimento da receita (fatias)'}
           value={rendimentoFatias}
           onChangeText={setRendimentoFatias}
           keyboardType="decimal-pad"
           placeholder="Ex: 10"
           erro={erros.rendimento}
         />
-        <Input
-          rotulo="Estoque inicial"
-          value={estoque}
-          onChangeText={setEstoque}
-          keyboardType="decimal-pad"
-          placeholder="0"
-        />
+        {tipoVenda === 'fatia' ? (
+          <View style={estilos.porFatiaInfo}>
+            <Text style={estilos.porFatiaTitulo}>🍰 por fatia · {rendimentoFatias || '?'} fatias por receita</Text>
+            <Text style={estilos.porFatiaDesc}>O estoque é gerenciado automaticamente pela produção</Text>
+          </View>
+        ) : (
+          <Input
+            rotulo="Estoque inicial"
+            value={estoque}
+            onChangeText={setEstoque}
+            keyboardType="decimal-pad"
+            placeholder="0"
+          />
+        )}
         <Separador />
         <Botao
           titulo={editando ? 'Salvar Alterações' : 'Cadastrar Produto'}
@@ -118,4 +143,20 @@ export default function ProdutoFormScreen({ route, navigation }: any) {
 const estilos = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   conteudo: { padding: Spacing.md },
+  rotulo: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textSecondary, marginBottom: 8 },
+  tipoRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+  tipoBtn: {
+    flex: 1, alignItems: 'center', paddingVertical: 10,
+    borderRadius: BorderRadius.md, borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  tipoBtnAtivo: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
+  tipoTxt: { fontWeight: '700', color: Colors.textSecondary, fontSize: FontSize.sm },
+  tipoTxtAtivo: { color: Colors.primary },
+  porFatiaInfo: {
+    backgroundColor: Colors.primaryLight, borderRadius: BorderRadius.md,
+    padding: Spacing.md, marginBottom: Spacing.md, alignItems: 'center',
+  },
+  porFatiaTitulo: { fontWeight: '700', color: Colors.primary, fontSize: FontSize.md },
+  porFatiaDesc: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 4, textAlign: 'center' },
 });

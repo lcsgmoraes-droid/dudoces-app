@@ -1,30 +1,28 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../theme';
 import { Card, Separador, Input, Botao } from '../../components/ui';
-import { listarAlertas, calcularNecessidades, listarMetas, salvarMeta } from '../../database/alertasService';
+import { calcularNecessidades, listarMetas, salvarMeta } from '../../database/alertasService';
 import { listarProdutos } from '../../database/produtosService';
-import { AlertaEstoque, PlanejamentoNecessidade, MetaProducao, Produto } from '../../types';
+import { PlanejamentoNecessidade, Produto } from '../../types';
 
 export default function EstoquePlanejamentoScreen() {
-  const [alertas, setAlertas] = useState<AlertaEstoque[]>([]);
   const [necessidades, setNecessidades] = useState<PlanejamentoNecessidade[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [metas, setMetas] = useState<Record<number, string>>({});
+  const [modoMeta, setModoMeta] = useState<'semanal' | 'mensal'>('semanal');
   const [salvando, setSalvando] = useState(false);
   const [carregando, setCarregando] = useState(false);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
     try {
-      const [alts, nec, prods, metasLista] = await Promise.all([
-        listarAlertas(),
+      const [nec, prods, metasLista] = await Promise.all([
         calcularNecessidades(),
         listarProdutos(),
         listarMetas(),
       ]);
-      setAlertas(alts);
       setNecessidades(nec);
       setProdutos(prods);
       const metasMap: Record<number, string> = {};
@@ -49,63 +47,61 @@ export default function EstoquePlanejamentoScreen() {
     }
   };
 
+  const valorExibido = (prodId: number): string => {
+    const semana = Number(metas[prodId] ?? 0);
+    return modoMeta === 'mensal' ? String(Math.round(semana * 4)) : String(semana);
+  };
+
+  const setMetaValor = (prodId: number, v: string) => {
+    if (modoMeta === 'mensal') {
+      setMetas(prev => ({ ...prev, [prodId]: String(Math.round((Number(v) || 0) / 4)) }));
+    } else {
+      setMetas(prev => ({ ...prev, [prodId]: v }));
+    }
+  };
+
   return (
     <ScrollView
       style={estilos.container}
       contentContainerStyle={estilos.conteudo}
       refreshControl={<RefreshControl refreshing={carregando} onRefresh={carregar} colors={[Colors.primary]} />}
     >
-      {/* Alertas */}
-      <Text style={estilos.secaoTitulo}>🚨 Alertas de Estoque</Text>
-      {alertas.length === 0 ? (
-        <Card><Text style={{ color: Colors.success, textAlign: 'center', fontWeight: '600' }}>✅ Tudo em ordem!</Text></Card>
-      ) : (
-        alertas.map(a => (
-          <Card key={a.materia_prima_id} estilo={{
-            borderLeftWidth: 4,
-            borderLeftColor: a.tipo === 'critico' ? Colors.danger : Colors.warning,
-          }}>
-            <View style={estilos.alertaRow}>
-              <Text style={estilos.alertaEmoji}>{a.tipo === 'critico' ? '🚨' : '⚠️'}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={estilos.alertaNome}>{a.nome}</Text>
-                <Text style={estilos.alertaInfo}>
-                  Atual: <Text style={{ fontWeight: '700' }}>{a.estoque_atual} {a.unidade}</Text>
-                  {'  |  '}Mínimo: {a.estoque_minimo} {a.unidade}
-                </Text>
-              </View>
-              <View style={[estilos.alertaBadge, {
-                backgroundColor: a.tipo === 'critico' ? '#FFEBEE' : '#FFF8E1'
-              }]}>
-                <Text style={[estilos.alertaBadgeTexto, {
-                  color: a.tipo === 'critico' ? Colors.danger : Colors.warning
-                }]}>
-                  {a.tipo === 'critico' ? 'CRÍTICO' : 'BAIXO'}
-                </Text>
-              </View>
-            </View>
-          </Card>
-        ))
-      )}
-
-      <Separador />
-
-      {/* Metas de produção semanal */}
-      <Text style={estilos.secaoTitulo}>🎯 Meta de produção semanal</Text>
-      <Text style={estilos.secaoDesc}>Defina quantas unidades de cada produto você planeja fazer por semana</Text>
+      {/* Meta de produção */}
+      <View style={estilos.metaHeader}>
+        <Text style={estilos.secaoTitulo}>🎯 Meta de produção</Text>
+        <View style={estilos.toggle}>
+          <TouchableOpacity
+            style={[estilos.toggleBtn, modoMeta === 'semanal' && estilos.toggleBtnAtivo]}
+            onPress={() => setModoMeta('semanal')}
+          >
+            <Text style={[estilos.toggleTxt, modoMeta === 'semanal' && estilos.toggleTxtAtivo]}>Semanal</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[estilos.toggleBtn, modoMeta === 'mensal' && estilos.toggleBtnAtivo]}
+            onPress={() => setModoMeta('mensal')}
+          >
+            <Text style={[estilos.toggleTxt, modoMeta === 'mensal' && estilos.toggleTxtAtivo]}>Mensal</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <Text style={estilos.secaoDesc}>
+        {modoMeta === 'semanal'
+          ? 'Quantas unidades de cada produto você planeja fazer por semana'
+          : 'Quantas unidades de cada produto você planeja fazer por mês (≈ 4 semanas)'}
+      </Text>
 
       {produtos.map(p => (
         <View key={p.id} style={estilos.metaRow}>
           <Text style={estilos.metaNome}>{p.nome}</Text>
           <View style={estilos.metaInput}>
             <Input
-              value={metas[p.id] ?? '0'}
-              onChangeText={v => setMetas(prev => ({ ...prev, [p.id]: v }))}
+              value={valorExibido(p.id)}
+              onChangeText={v => setMetaValor(p.id, v)}
               keyboardType="numeric"
               estilo={{ marginBottom: 0 }}
             />
           </View>
-          <Text style={estilos.metaUnidade}>/sem</Text>
+          <Text style={estilos.metaUnidade}>/{modoMeta === 'semanal' ? 'sem' : 'mês'}</Text>
         </View>
       ))}
 
@@ -157,12 +153,12 @@ const estilos = StyleSheet.create({
   conteudo: { padding: Spacing.md },
   secaoTitulo: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
   secaoDesc: { fontSize: FontSize.sm, color: Colors.textSecondary, marginBottom: Spacing.md },
-  alertaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  alertaEmoji: { fontSize: 22 },
-  alertaNome: { fontWeight: '700', fontSize: FontSize.md, color: Colors.textPrimary },
-  alertaInfo: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
-  alertaBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: BorderRadius.full },
-  alertaBadgeTexto: { fontSize: FontSize.xs, fontWeight: '800' },
+  metaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  toggle: { flexDirection: 'row', backgroundColor: Colors.border, borderRadius: BorderRadius.full, padding: 2 },
+  toggleBtn: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: BorderRadius.full },
+  toggleBtnAtivo: { backgroundColor: Colors.primary },
+  toggleTxt: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textSecondary },
+  toggleTxtAtivo: { color: '#fff' },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm, gap: Spacing.sm },
   metaNome: { flex: 1, fontSize: FontSize.md, fontWeight: '600', color: Colors.textPrimary },
   metaInput: { width: 80 },

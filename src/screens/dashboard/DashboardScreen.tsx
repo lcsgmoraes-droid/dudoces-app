@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet,
-  TouchableOpacity, RefreshControl, useWindowDimensions
+  TouchableOpacity, RefreshControl
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -44,8 +44,6 @@ function mascararData(valor: string): string {
 
 export default function DashboardScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const isTablet = width >= 768;
 
   const hoje = new Date();
   const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -284,40 +282,6 @@ export default function DashboardScreen({ navigation }: any) {
         </>
       )}
 
-      {/* Atalhos rápidos */}
-      <Separador espaco={Spacing.sm} />
-      <Text style={estilos.secaoTitulo}>⚡ Atalhos rápidos</Text>
-      <View style={estilos.gridAtalhos}>
-        <TouchableOpacity
-          style={[estilos.atalho, isTablet ? estilos.atalhoTablet : estilos.atalhoMobile]}
-          onPress={() => navigation.navigate('Vendas', { screen: 'VendaForm' })}
-        >
-          <Text style={estilos.atalhoEmoji}>💰</Text>
-          <Text style={estilos.atalhoTexto}>Nova Venda</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[estilos.atalho, isTablet ? estilos.atalhoTablet : estilos.atalhoMobile]}
-          onPress={() => navigation.navigate('Producao', { screen: 'ProducaoForm' })}
-        >
-          <Text style={estilos.atalhoEmoji}>👩‍🍳</Text>
-          <Text style={estilos.atalhoTexto}>Registrar Produção</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[estilos.atalho, isTablet ? estilos.atalhoTablet : estilos.atalhoMobile]}
-          onPress={() => navigation.navigate('Materiais', { screen: 'CompraForm' })}
-        >
-          <Text style={estilos.atalhoEmoji}>🛒</Text>
-          <Text style={estilos.atalhoTexto}>Registrar Compra</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[estilos.atalho, isTablet ? estilos.atalhoTablet : estilos.atalhoMobile]}
-          onPress={() => navigation.navigate('EstoquePlanejamento')}
-        >
-          <Text style={estilos.atalhoEmoji}>📊</Text>
-          <Text style={estilos.atalhoTexto}>Ver Planejamento</Text>
-        </TouchableOpacity>
-      </View>
-
       <Separador espaco={Spacing.xl} />
     </ScrollView>
   );
@@ -385,28 +349,5 @@ const estilos = StyleSheet.create({
   producaoNome: { fontWeight: '600', color: Colors.textPrimary },
   producaoData: { fontSize: FontSize.xs, color: Colors.textMuted },
   producaoQtd: { fontSize: FontSize.lg, fontWeight: '800', color: Colors.primary },
-  gridAtalhos: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  atalho: {
-    minWidth: 140,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    marginBottom: Spacing.sm,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  atalhoMobile: { width: '48.6%' },
-  atalhoTablet: { width: '23.8%' },
-  atalhoEmoji: { fontSize: 32, marginBottom: 6 },
-  atalhoTexto: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textPrimary, textAlign: 'center' },
+
 });

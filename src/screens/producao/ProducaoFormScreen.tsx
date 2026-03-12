@@ -9,13 +9,39 @@ import { registrarProducao } from '../../database/producaoService';
 import { listarProdutosComCapacidade } from '../../database/produtosService';
 import { Produto } from '../../types';
 
+function formatarDataBR(data: Date): string {
+  const dia = String(data.getDate()).padStart(2, '0');
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const ano = data.getFullYear();
+  return `${dia}/${mes}/${ano}`;
+}
+
+function dataBRParaISO(valor: string): string | null {
+  const partes = valor.split('/');
+  if (partes.length !== 3) return null;
+  const dia = Number(partes[0]);
+  const mes = Number(partes[1]);
+  const ano = Number(partes[2]);
+  if (!dia || !mes || !ano || ano < 2000 || mes < 1 || mes > 12 || dia < 1 || dia > 31) return null;
+  const d = new Date(ano, mes - 1, dia);
+  if (d.getFullYear() !== ano || d.getMonth() !== mes - 1 || d.getDate() !== dia) return null;
+  return `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+}
+
+function mascararData(valor: string): string {
+  const digitos = valor.replaceAll(/\D/g, '').slice(0, 8);
+  if (digitos.length <= 2) return digitos;
+  if (digitos.length <= 4) return `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
+  return `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
+}
+
 export default function ProducaoFormScreen({ route, navigation }: any) {
   const preSelecionado: number | undefined = route.params?.produtoId;
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
   const [quantidade, setQuantidade] = useState('1');
-  const [data, setData] = useState(new Date().toISOString().split('T')[0]);
+  const [data, setData] = useState(formatarDataBR(new Date()));
   const [observacao, setObservacao] = useState('');
   const [salvando, setSalvando] = useState(false);
 
@@ -29,7 +55,7 @@ export default function ProducaoFormScreen({ route, navigation }: any) {
     });
   }, []);
 
-  const qtdNum = parseInt(quantidade) || 0;
+  const qtdNum = Number.parseInt(quantidade) || 0;
   const podeFazer = produtoSelecionado?.pode_fazer_quantidade ?? 0;
   const estoqueSuficiente = qtdNum <= podeFazer;
 
@@ -44,7 +70,7 @@ export default function ProducaoFormScreen({ route, navigation }: any) {
     }
     setSalvando(true);
     try {
-      await registrarProducao(produtoSelecionado.id, qtdNum, data, observacao.trim() || undefined);
+      await registrarProducao(produtoSelecionado.id, qtdNum, dataBRParaISO(data) || data, observacao.trim() || undefined);
       Alert.alert('✅ Produção registrada!', `${qtdNum}x ${produtoSelecionado.nome} adicionado ao estoque.`, [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
@@ -121,8 +147,10 @@ export default function ProducaoFormScreen({ route, navigation }: any) {
         <Input
           rotulo="Data de produção"
           value={data}
-          onChangeText={setData}
-          placeholder="AAAA-MM-DD"
+          onChangeText={v => setData(mascararData(v))}
+          keyboardType="numeric"
+          maxLength={10}
+          placeholder="dd/mm/aaaa"
         />
 
         <Input
