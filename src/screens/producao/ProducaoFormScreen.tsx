@@ -57,7 +57,14 @@ export default function ProducaoFormScreen({ route, navigation }: any) {
 
   const qtdNum = Number.parseInt(quantidade) || 0;
   const podeFazer = produtoSelecionado?.pode_fazer_quantidade ?? 0;
-  const estoqueSuficiente = qtdNum <= podeFazer;
+  const rendimento = produtoSelecionado?.rendimento_fatias || 1;
+  const ehFatia = produtoSelecionado?.unidade === 'fatia';
+  const podeFazerReceitas = ehFatia ? Math.floor(podeFazer / rendimento) : podeFazer;
+  const estoqueSuficiente = qtdNum <= podeFazerReceitas;
+  const sufixoFatias = ehFatia ? ' (= ' + (podeFazerReceitas * rendimento) + ' fatias)' : '';
+  const textoEstoqueCard = estoqueSuficiente
+    ? '✅ Estoque suficiente para ' + podeFazerReceitas + ' receita(s)' + sufixoFatias
+    : '⚠️ Estoque insuficiente! Máximo: ' + podeFazerReceitas + ' receita(s)';
 
   const salvar = async () => {
     if (!produtoSelecionado) {
@@ -71,7 +78,8 @@ export default function ProducaoFormScreen({ route, navigation }: any) {
     setSalvando(true);
     try {
       await registrarProducao(produtoSelecionado.id, qtdNum, dataBRParaISO(data) || data, observacao.trim() || undefined);
-      Alert.alert('✅ Produção registrada!', `${qtdNum}x ${produtoSelecionado.nome} adicionado ao estoque.`, [
+      const estoqueMsg = ehFatia ? `${qtdNum * rendimento} fatias` : `${qtdNum} unidade(s)`;
+      Alert.alert('✅ Produção registrada!', `${estoqueMsg} de ${produtoSelecionado.nome} adicionado${ehFatia ? 's' : ''} ao estoque.`, [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (e: any) {
@@ -102,10 +110,16 @@ export default function ProducaoFormScreen({ route, navigation }: any) {
                 {p.nome}
               </Text>
               <Text style={estilos.prodInfo}>
-                {p.pode_fazer_quantidade !== undefined && p.pode_fazer_quantidade > 0
-                  ? `✅ Dá pra fazer: ${p.pode_fazer_quantidade}`
-                  : '⚠️ Sem estoque suficiente'}
-                {'  '}· Estoque atual: {p.estoque_atual}
+                {(() => {
+                  const cap = p.pode_fazer_quantidade ?? 0;
+                  const pRend = p.rendimento_fatias || 1;
+                  const pFatia = p.unidade === 'fatia';
+                  const capRec = pFatia ? Math.floor(cap / pRend) : cap;
+                  if (!cap) return '⚠️ Sem estoque suficiente';
+                  const sufixo = pFatia ? ' (= ' + cap + ' fatias)' : '';
+                  return '✅ Faz: ' + capRec + ' receita(s)' + sufixo;
+                })()}
+                {'  '}· Estoque: {p.estoque_atual} {p.unidade === 'fatia' ? 'fatia(s)' : 'un.'}
               </Text>
             </View>
             {produtoSelecionado?.id === p.id && (
@@ -128,21 +142,24 @@ export default function ProducaoFormScreen({ route, navigation }: any) {
             marginBottom: Spacing.md,
           }}>
             <Text style={{ fontWeight: '700', color: estoqueSuficiente ? Colors.success : Colors.danger, textAlign: 'center' }}>
-              {estoqueSuficiente
-                ? `✅ Estoque suficiente para ${podeFazer} unidade(s)`
-                : `⚠️ Estoque insuficiente! Máximo: ${podeFazer}`}
+              {textoEstoqueCard}
             </Text>
           </Card>
         )}
 
         <Input
-          rotulo="Quantidade produzida"
+          rotulo={ehFatia ? 'Quantidade de receitas (tortas/formas inteiras)' : 'Quantidade produzida'}
           obrigatorio
           value={quantidade}
           onChangeText={setQuantidade}
           keyboardType="numeric"
           placeholder="1"
         />
+        {ehFatia && qtdNum > 0 && (
+          <Text style={{ color: Colors.success, fontSize: FontSize.sm, marginTop: -8, marginBottom: Spacing.sm, fontWeight: '600' }}>
+            → {qtdNum * rendimento} fatias serão adicionadas ao estoque
+          </Text>
+        )}
 
         <Input
           rotulo="Data de produção"

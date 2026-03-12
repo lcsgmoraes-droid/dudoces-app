@@ -34,34 +34,40 @@ function intervaloPorPeriodo(filtro: FiltroPeriodo): { inicio?: string; fim?: st
 
 export async function registrarProducao(
   produtoId: number,
-  quantidade: number,
+  quantidadeReceitas: number,  // Quantas receitas (tortas inteiras) foram feitas
   data: string,
   observacao?: string
 ): Promise<void> {
   const db = await getDatabase();
   const receita = await listarReceita(produtoId);
-  const produto = await db.getFirstAsync<{ rendimento_fatias: number }>(
-    'SELECT rendimento_fatias FROM produtos WHERE id = ?',
+  const produto = await db.getFirstAsync<{ rendimento_fatias: number; unidade: string }>(
+    'SELECT rendimento_fatias, unidade FROM produtos WHERE id = ?',
     [produtoId]
   );
   const rendimento = Math.max(1, produto?.rendimento_fatias || 1);
-  const fatorReceita = quantidade / rendimento;
+  const ehFatia = produto?.unidade === 'fatia';
+
+  // Quanto entra no estoque de produto:
+  // - Produto por fatia: cada receita rende N fatias → estoque += receitas × rendimento
+  // - Produto por inteiro: cada receita = 1 unidade → estoque += receitas
+  const estoqueAdicionar = ehFatia ? quantidadeReceitas * rendimento : quantidadeReceitas;
 
   if (receita.length === 0) {
     throw new Error('Este produto não tem receita cadastrada.');
   }
 
   await db.withTransactionAsync(async () => {
-    // Verifica e deduz matérias-primas do estoque
+    // Verifica e deduz matérias-primas:
+    // Consumo = ingrediente por receita × número de receitas (independe de fatias)
     for (const item of receita) {
       const mp = await db.getFirstAsync<{ estoque_atual: number; nome: string }>(
         'SELECT estoque_atual, nome FROM materias_primas WHERE id = ?',
         [item.materia_prima_id]
       );
-      const necessario = item.quantidade * fatorReceita;
+      const necessario = item.quantidade * quantidadeReceitas;
       if (!mp || mp.estoque_atual < necessario) {
         throw new Error(
-          `Estoque insuficiente de "${mp?.nome || 'matéria-prima'}". Necessário: ${necessario}, disponível: ${mp?.estoque_atual ?? 0}.`
+          `Estoque insuficiente de "${mp?.nome || 'matéria-prima'}". Necessário: ${necessario.toFixed(2)}, disponível: ${(mp?.estoque_atual ?? 0).toFixed(2)}.`
         );
       }
       await db.runAsync(
@@ -70,7 +76,7 @@ export async function registrarProducao(
       );
     }
 
-    // Calcula custo total da produção
+    // Custo total: custo por receita completa × número de receitas
     const custoResult = await db.getFirstAsync<{ custo: number }>(
       `SELECT SUM(r.quantidade * ? *
          CASE WHEN mp.usar_custo_medio = 1 THEN mp.custo_medio ELSE mp.custo_ultima_compra END
@@ -78,21 +84,21 @@ export async function registrarProducao(
        FROM receitas r
        JOIN materias_primas mp ON mp.id = r.materia_prima_id
        WHERE r.produto_id = ?`,
-      [fatorReceita, produtoId]
+      [quantidadeReceitas, produtoId]
     );
     const custoTotal = custoResult?.custo || 0;
 
-    // Registra a produção
+    // Registra a produção (armazena número de RECEITAS feitas)
     await db.runAsync(
       `INSERT INTO producoes (produto_id, quantidade, data, custo_total, observacao)
        VALUES (?, ?, ?, ?, ?)`,
-      [produtoId, quantidade, data, custoTotal, observacao || null]
+      [produtoId, quantidadeReceitas, data, custoTotal, observacao || null]
     );
 
-    // Adiciona ao estoque de produtos
+    // Adiciona ao estoque de produtos (em fatias ou unidades conforme o produto)
     await db.runAsync(
       'UPDATE produtos SET estoque_atual = estoque_atual + ? WHERE id = ?',
-      [quantidade, produtoId]
+      [estoqueAdicionar, produtoId]
     );
   });
 }
@@ -164,16 +170,24 @@ export async function listarProducoesFiltradas(
 
 export async function excluirProducao(id: number): Promise<void> {
   const db = await getDatabase();
-  // Busca produção para reverter estoque
+  // Busca produção (quantidade = receitas feitas)
   const producao = await db.getFirstAsync<Producao>(
     'SELECT * FROM producoes WHERE id = ?', [id]
   );
   if (!producao) return;
 
   const receita = await listarReceita(producao.produto_id);
+  const produto = await db.getFirstAsync<{ rendimento_fatias: number; unidade: string }>(
+    'SELECT rendimento_fatias, unidade FROM produtos WHERE id = ?',
+    [producao.produto_id]
+  );
+  const rendimento = Math.max(1, produto?.rendimento_fatias || 1);
+  const ehFatia = produto?.unidade === 'fatia';
+  // Quanto remover do estoque de produto (mesmo cálculo da produção)
+  const estoqueRemover = ehFatia ? producao.quantidade * rendimento : producao.quantidade;
 
   await db.withTransactionAsync(async () => {
-    // Devolve matérias-primas ao estoque
+    // Devolve matérias-primas: consumo por receita × receitas feitas
     for (const item of receita) {
       const devolver = item.quantidade * producao.quantidade;
       await db.runAsync(
@@ -181,10 +195,10 @@ export async function excluirProducao(id: number): Promise<void> {
         [devolver, item.materia_prima_id]
       );
     }
-    // Remove do estoque de produtos
+    // Remove do estoque de produtos (fatias ou unidades)
     await db.runAsync(
       'UPDATE produtos SET estoque_atual = MAX(0, estoque_atual - ?) WHERE id = ?',
-      [producao.quantidade, producao.produto_id]
+      [estoqueRemover, producao.produto_id]
     );
     await db.runAsync('DELETE FROM producoes WHERE id = ?', [id]);
   });

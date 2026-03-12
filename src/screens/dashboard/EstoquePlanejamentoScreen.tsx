@@ -92,7 +92,14 @@ export default function EstoquePlanejamentoScreen() {
 
       {produtos.map(p => (
         <View key={p.id} style={estilos.metaRow}>
-          <Text style={estilos.metaNome}>{p.nome}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={estilos.metaNome}>{p.nome}</Text>
+            <Text style={estilos.metaTipo}>
+              {p.unidade === 'fatia'
+                ? `por fatia · rende ${p.rendimento_fatias ?? 1} fatia(s) por receita`
+                : 'por inteiro (1 receita = 1 unidade)'}
+            </Text>
+          </View>
           <View style={estilos.metaInput}>
             <Input
               value={valorExibido(p.id)}
@@ -177,7 +184,8 @@ const estilos = StyleSheet.create({
   toggleTxt: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textSecondary },
   toggleTxtAtivo: { color: '#fff' },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm, gap: Spacing.sm },
-  metaNome: { flex: 1, fontSize: FontSize.md, fontWeight: '600', color: Colors.textPrimary },
+  metaNome: { fontSize: FontSize.md, fontWeight: '600', color: Colors.textPrimary },
+  metaTipo: { fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 1 },
   metaInput: { width: 80 },
   metaUnidade: { fontSize: FontSize.sm, color: Colors.textSecondary, width: 35 },
   necNome: { fontWeight: '700', fontSize: FontSize.md, color: Colors.textPrimary, marginBottom: Spacing.sm },

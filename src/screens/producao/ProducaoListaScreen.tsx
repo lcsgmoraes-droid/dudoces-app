@@ -19,7 +19,7 @@ export default function ProducaoListaScreen({ navigation }: any) {
   const confirmarExcluir = (p: Producao) => {
     Alert.alert(
       'Excluir produção',
-      `Excluir essa produção vai devolver ${p.quantidade}x ${p.produto_nome} ao estoque de matérias-primas e remover do estoque de produtos. Confirmar?`,
+      `Excluir essa produção vai devolver os ingredientes ao estoque de matérias-primas e remover ${p.produto_nome} do estoque de produtos. Confirmar?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Excluir', style: 'destructive', onPress: async () => {
@@ -57,7 +57,7 @@ export default function ProducaoListaScreen({ navigation }: any) {
               </View>
               <View style={estilos.qtdBox}>
                 <Text style={estilos.qtd}>{item.quantidade}</Text>
-                <Text style={estilos.qtdLabel}>un.</Text>
+                <Text style={estilos.qtdLabel}>receita(s)</Text>
               </View>
               <TouchableOpacity onPress={() => confirmarExcluir(item)} style={{ padding: 4 }}>
                 <Ionicons name="trash-outline" size={17} color={Colors.danger} />
