@@ -89,9 +89,6 @@ export async function calcularNecessidades(): Promise<PlanejamentoNecessidade[]>
     qtd_por_embalagem: n.qtd_por_embalagem || 0,
     descricao_embalagem: n.descricao_embalagem || undefined,
   }));
-    necessidade_2meses: n.necessidade_semana * 8,
-    falta_semana: Math.max(0, n.necessidade_semana - n.estoque_atual),
-  }));
 }
 
 export async function totalAlertas(): Promise<number> {
