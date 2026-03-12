@@ -66,10 +66,13 @@ export async function calcularNecessidades(): Promise<PlanejamentoNecessidade[]>
        mp.estoque_atual,
        mp.qtd_por_embalagem,
        mp.descricao_embalagem,
-       COALESCE(SUM(r.quantidade * m.quantidade_semana), 0) as necessidade_semana
+       COALESCE(SUM(
+         r.quantidade * m.quantidade_semana / COALESCE(NULLIF(pr.rendimento_fatias, 0), 1)
+       ), 0) as necessidade_semana
      FROM materias_primas mp
      LEFT JOIN receitas r ON r.materia_prima_id = mp.id
      LEFT JOIN metas_producao m ON m.produto_id = r.produto_id
+     LEFT JOIN produtos pr ON pr.id = r.produto_id
      GROUP BY mp.id, mp.nome, mp.unidade, mp.estoque_atual, mp.qtd_por_embalagem, mp.descricao_embalagem
      HAVING necessidade_semana > 0
      ORDER BY mp.nome ASC`
