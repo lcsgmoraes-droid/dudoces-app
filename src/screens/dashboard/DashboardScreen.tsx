@@ -254,7 +254,7 @@ export default function DashboardScreen({ navigation }: any) {
               <View style={estilos.produtoRow}>
                 <Text style={estilos.produtoNome}>{p.nome}</Text>
                 <View style={estilos.prodBadges}>
-                  <Badge texto={`Faz: ${p.pode_fazer_quantidade}`} cor="verde" />
+                  <Badge texto={`Faz: ${p.pode_fazer_quantidade} fatias`} cor="verde" />
                   {(p.estoque_atual ?? 0) > 0 && (
                     <Badge texto={`Estoque: ${p.estoque_atual}`} cor="rosa" />
                   )}
